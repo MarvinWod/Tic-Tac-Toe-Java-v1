@@ -22,9 +22,7 @@ It allows two players to take turns placing “X” and “O” and win by getti
 
 ## 🚦 How to Run Tic Tac Toe
 
-• Clone the repository:
-
-  git clone https://github.com/MarvinWod/Tic-Tac-Toe-Java-v1
+• Clone the repository: git clone https://github.com/MarvinWod/Tic-Tac-Toe-Java-v1
   
 • Open the project in your Java IDE.
 
