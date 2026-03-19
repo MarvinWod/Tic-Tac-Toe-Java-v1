@@ -54,10 +54,13 @@ jobs:
       - name: Build with Maven
         run: mvn clean package -DskipTests
       
+      - name: List JAR files
+        run: ls -la target/*.jar
+      
       - name: Upload Release Assets
         uses: softprops/action-gh-release@v2
         with:
-          files: target/TicTacToe-*.jar
+          files: target/TicTacToe-1.0.0.jar
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
