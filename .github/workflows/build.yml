@@ -2,65 +2,50 @@ name: Java CI/CD
 
 on:
   push:
-    branches: [ main, master ]
-  pull_request:
-    branches: [ main, master ]
-  release:
-    types: [created]
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
 
 jobs:
   build:
-    name: Build and Test
+    name: Build JAR
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      
+
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
           java-version: '17'
           distribution: 'temurin'
           cache: maven
-      
+
       - name: Build with Maven
         run: mvn clean package -DskipTests
-      
-      - name: Upload build artifact
+
+      - name: Upload JAR artifact
         uses: actions/upload-artifact@v4
         with:
-          name: tictactoe-jar
+          name: jar
           path: target/TicTacToe-*.jar
-          retention-days: 30
 
   release:
-    name: Create Release with JAR
+    name: Create GitHub Release
     needs: build
     runs-on: ubuntu-latest
-    if: github.event_name == 'release'
-    permissions:
-      contents: write
-      id-token: write
-    
+
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-      
-      - name: Set up JDK 17
-        uses: actions/setup-java@v4
+      - name: Download JAR artifact
+        uses: actions/download-artifact@v4
         with:
-          java-version: '17'
-          distribution: 'temurin'
-          cache: maven
-      
-      - name: Build with Maven
-        run: mvn clean package -DskipTests
-      
-      - name: List JAR files
-        run: ls -la target/*.jar
-      
-      - name: Upload Release Assets
+          name: jar
+          path: target
+
+      - name: Create Release + Upload Asset
         uses: softprops/action-gh-release@v2
         with:
           files: target/TicTacToe-*.jar
