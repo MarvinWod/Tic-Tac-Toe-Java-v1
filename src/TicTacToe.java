@@ -19,11 +19,15 @@ public class TicTacToe {
     JButton resetButton = new JButton("Neues Spiel");
 
     //Spieler
+
     String playerX = "X";
     String playerO = "O";
     String currentPlayer = playerX;
     String lastWinner = null;
     String lastStarter = null;
+
+    // Modus: true = gegen Computer, false = 2 Spieler
+    boolean vsComputer = false;
 
     //Spielstatus
     boolean gameOver = false;
@@ -33,7 +37,35 @@ public class TicTacToe {
     int scoreX = 0;
     int scoreO = 0;
 
+    // Steuert, ob der Spieler ziehen darf
+    boolean playerCanMove = true;
+
+    // Schwierigkeitsgrad: 0 = Leicht, 1 = Mittel, 2 = Schwer
+    int aiDifficulty = 0;
+
     TicTacToe() {
+        // Menüleiste mit Modus-Auswahl
+        JMenuBar menuBar = new JMenuBar();
+        JMenu menu = new JMenu("Menü");
+        JMenuItem modeItem = new JMenuItem("Modus wählen");
+        modeItem.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                showModeDialog();
+                scoreX = 0;
+                scoreO = 0;
+                updateScoreLabel();
+                resetGame();
+            }
+        });
+        menu.add(modeItem);
+        menuBar.add(menu);
+        frame.setJMenuBar(menuBar);
+
+        // Modus-Auswahl beim Start
+        showModeDialog();
+        scoreX = 0;
+        scoreO = 0;
+        updateScoreLabel();
         //Fenster Einstellungen
         frame.setVisible(true);
         frame.setSize(boardWidth, boardHeight);
@@ -108,28 +140,228 @@ public class TicTacToe {
                     public void actionPerformed(ActionEvent e) {
                         if (gameOver) return;
                         JButton tile = (JButton) e.getSource();
-                        if (tile.getText() == "") {
+                        if (tile.getText().isEmpty() && playerCanMove) {
                             tile.setText(currentPlayer);
                             turns++;
                             checkWinner();
-                            if(!gameOver) {
-                                currentPlayer = currentPlayer == playerX ? playerO : playerX;
+                            if (!gameOver) {
+                                currentPlayer = currentPlayer.equals(playerX) ? playerO : playerX;
                                 textLabel.setText(currentPlayer + " ist am Zug");
+                                // KI-Zug, falls aktiviert und jetzt Computer am Zug
+                                if (vsComputer && currentPlayer.equals(playerO)) {
+                                    computerMoveWithDelay();
+                                }
                             }
                         }
                     }
                 });
             }
         }
+
+        // Falls Computer beginnt
+        if (vsComputer && currentPlayer.equals(playerO)) {
+            computerMoveWithDelay();
+        }
+    }
+
+    // Zeigt den Modus-Auswahldialog an und setzt den Modus
+    void showModeDialog() {
+        Object[] options = {"2 Spieler", "Gegen Computer"};
+        int n = JOptionPane.showOptionDialog(
+                frame,
+                "Wähle den Spielmodus:",
+                "Spielmodus",
+                JOptionPane.YES_NO_OPTION,
+                JOptionPane.QUESTION_MESSAGE,
+                null,
+                options,
+                options[0]
+        );
+        vsComputer = (n == 1);
+        if (vsComputer) {
+            Object[] diffOptions = {"Leicht", "Mittel", "Schwer"};
+            int diff = JOptionPane.showOptionDialog(
+                    frame,
+                    "Wähle den Schwierigkeitsgrad:",
+                    "Schwierigkeitsgrad",
+                    JOptionPane.DEFAULT_OPTION,
+                    JOptionPane.QUESTION_MESSAGE,
+                    null,
+                    diffOptions,
+                    diffOptions[0]
+            );
+            aiDifficulty = diff; // 0=Leicht, 1=Mittel, 2=Schwer
+        }
+    }
+
+    // Einfache KI: wählt zufällig ein freies Feld
+    void computerMove() {
+        if (gameOver) return;
+        if (aiDifficulty == 0) {
+            // Leicht: Zufälliger legaler Zug
+            randomAIMove();
+        } else if (aiDifficulty == 1) {
+            // Mittel: Minimax mit Tiefe 2
+            Point move = minimaxMove(currentPlayer, 2);
+            if (move != null) {
+                board[move.x][move.y].setText(currentPlayer);
+            } else {
+                randomAIMove();
+            }
+            turns++;
+            checkWinner();
+            if (!gameOver) {
+                currentPlayer = currentPlayer.equals(playerX) ? playerO : playerX;
+                textLabel.setText(currentPlayer + " ist am Zug");
+            }
+        } else {
+            // Schwer: Vollständiger Minimax mit Alpha-Beta-Pruning
+            Point move = minimaxMove(currentPlayer, 9);
+            if (move != null) {
+                board[move.x][move.y].setText(currentPlayer);
+            } else {
+                randomAIMove();
+            }
+            turns++;
+            checkWinner();
+            if (!gameOver) {
+                currentPlayer = currentPlayer.equals(playerX) ? playerO : playerX;
+                textLabel.setText(currentPlayer + " ist am Zug");
+            }
+        }
+    }
+
+    // Zufälliger Zug für leichte KI
+    void randomAIMove() {
+        java.util.List<Point> freieFelder = new java.util.ArrayList<>();
+        for (int r = 0; r < 3; r++) {
+            for (int c = 0; c < 3; c++) {
+                if (board[r][c].getText().isEmpty()) {
+                    freieFelder.add(new Point(r, c));
+                }
+            }
+        }
+        if (freieFelder.isEmpty()) return;
+        Point zug = freieFelder.get((int)(Math.random() * freieFelder.size()));
+        board[zug.x][zug.y].setText(currentPlayer);
+        turns++;
+        checkWinner();
+        if (!gameOver) {
+            currentPlayer = currentPlayer.equals(playerX) ? playerO : playerX;
+            textLabel.setText(currentPlayer + " ist am Zug");
+        }
+    }
+
+    // Minimax-Algorithmus mit begrenzter Tiefe
+    Point minimaxMove(String symbol, int maxDepth) {
+        int bestScore = Integer.MIN_VALUE;
+        Point bestMove = null;
+        for (int r = 0; r < 3; r++) {
+            for (int c = 0; c < 3; c++) {
+                if (board[r][c].getText().isEmpty()) {
+                    board[r][c].setText(symbol);
+                    int score = minimax(symbol, 0, false, maxDepth, Integer.MIN_VALUE, Integer.MAX_VALUE);
+                    board[r][c].setText("");
+                    if (score > bestScore) {
+                        bestScore = score;
+                        bestMove = new Point(r, c);
+                    }
+                }
+            }
+        }
+        return bestMove;
+    }
+
+    // Minimax mit Alpha-Beta-Pruning
+    int minimax(String symbol, int depth, boolean isMax, int maxDepth, int alpha, int beta) {
+        String winner = getWinner();
+        if (winner != null) {
+            if (winner.equals(symbol)) return 10 - depth;
+            else if (winner.equals(currentPlayer.equals(playerX) ? playerO : playerX)) return depth - 10;
+            else return 0;
+        }
+        if (depth >= maxDepth) return 0;
+        if (isBoardFull()) return 0;
+        String nextSymbol = isMax ? symbol : (symbol.equals(playerX) ? playerO : playerX);
+        int best;
+        if (isMax) {
+            best = Integer.MIN_VALUE;
+            for (int r = 0; r < 3; r++) {
+                for (int c = 0; c < 3; c++) {
+                    if (board[r][c].getText().isEmpty()) {
+                        board[r][c].setText(nextSymbol);
+                        int score = minimax(symbol, depth + 1, false, maxDepth, alpha, beta);
+                        board[r][c].setText("");
+                        best = Math.max(best, score);
+                        alpha = Math.max(alpha, best);
+                        if (beta <= alpha) break;
+                    }
+                }
+            }
+        } else {
+            best = Integer.MAX_VALUE;
+            for (int r = 0; r < 3; r++) {
+                for (int c = 0; c < 3; c++) {
+                    if (board[r][c].getText().isEmpty()) {
+                        board[r][c].setText(nextSymbol);
+                        int score = minimax(symbol, depth + 1, true, maxDepth, alpha, beta);
+                        board[r][c].setText("");
+                        best = Math.min(best, score);
+                        beta = Math.min(beta, best);
+                        if (beta <= alpha) break;
+                    }
+                }
+            }
+        }
+        return best;
+    }
+
+    // Hilfsmethode: Gibt Gewinner zurück ("X", "O" oder null)
+    String getWinner() {
+        for (int r = 0; r < 3; r++) {
+            if (!board[r][0].getText().isEmpty() &&
+                board[r][0].getText().equals(board[r][1].getText()) &&
+                board[r][1].getText().equals(board[r][2].getText())) {
+                return board[r][0].getText();
+            }
+        }
+        for (int c = 0; c < 3; c++) {
+            if (!board[0][c].getText().isEmpty() &&
+                board[0][c].getText().equals(board[1][c].getText()) &&
+                board[1][c].getText().equals(board[2][c].getText())) {
+                return board[0][c].getText();
+            }
+        }
+        if (!board[0][0].getText().isEmpty() &&
+            board[0][0].getText().equals(board[1][1].getText()) &&
+            board[1][1].getText().equals(board[2][2].getText())) {
+            return board[0][0].getText();
+        }
+        if (!board[0][2].getText().isEmpty() &&
+            board[0][2].getText().equals(board[1][1].getText()) &&
+            board[1][1].getText().equals(board[2][0].getText())) {
+            return board[0][2].getText();
+        }
+        if (isBoardFull()) return "draw";
+        return null;
+    }
+
+    boolean isBoardFull() {
+        for (int r = 0; r < 3; r++) {
+            for (int c = 0; c < 3; c++) {
+                if (board[r][c].getText().isEmpty()) return false;
+            }
+        }
+        return true;
     }
 
     void checkWinner() {
         //horizontal
         for (int r = 0; r < 3; r++) {
-            if (board[r][0].getText() == "") continue;
+            if (board[r][0].getText().isEmpty()) continue;
 
-            if (board[r][0].getText() == board[r][1].getText() &&
-                board[r][1].getText() == board[r][2].getText()) {
+            if (board[r][0].getText().equals(board[r][1].getText()) &&
+                board[r][1].getText().equals(board[r][2].getText())) {
                 for (int i = 0; i < 3; i++) {
                     setWinner(board[r][i]);
                 }
@@ -146,10 +378,10 @@ public class TicTacToe {
         }
         //vertical
         for (int c = 0; c < 3; c++) {
-            if (board[0][c].getText() == "") continue;
+            if (board[0][c].getText().isEmpty()) continue;
 
-            if (board[0][c].getText() == board[1][c].getText() &&
-                board[1][c].getText() == board[2][c].getText()) {
+            if (board[0][c].getText().equals(board[1][c].getText()) &&
+                board[1][c].getText().equals(board[2][c].getText())) {
                 for (int i = 0; i < 3; i++) {
                     setWinner(board[i][c]);
                 }
@@ -165,9 +397,9 @@ public class TicTacToe {
             }
         }
         //diagonal
-        if (board[0][0].getText() == board [1][1].getText() &&
-            board[1][1].getText() == board[2][2].getText() &&
-            board[0][0].getText() != "") {
+        if (board[0][0].getText().equals(board[1][1].getText()) &&
+            board[1][1].getText().equals(board[2][2].getText()) &&
+            !board[0][0].getText().isEmpty()) {
             for (int i = 0; i < 3; i++) {
                 setWinner(board[i][i]);
             }
@@ -182,9 +414,9 @@ public class TicTacToe {
             return;
         }
         //anti diagonal
-        if (board[0][2].getText() == board [1][1].getText() &&
-            board[1][1].getText() == board[2][0].getText() &&
-            board[0][2].getText() != "") {
+        if (board[0][2].getText().equals(board[1][1].getText()) &&
+            board[1][1].getText().equals(board[2][0].getText()) &&
+            !board[0][2].getText().isEmpty()) {
             for (int i = 0; i < 3; i++) {
                 setWinner(board[i][2 - i]);
             }
@@ -250,5 +482,29 @@ public class TicTacToe {
                 board[r][c].setForeground(Color.black);
             }
         }
+
+        // Nach Reset: Spieler darf ziehen, außer die KI beginnt
+        playerCanMove = !(vsComputer && currentPlayer.equals(playerO));
+
+        // Falls Computer beginnt
+        if (vsComputer && currentPlayer.equals(playerO)) {
+            computerMoveWithDelay();
+        }
+    }
+
+    // Führt den KI-Zug mit Verzögerung aus
+    void computerMoveWithDelay() {
+        playerCanMove = false; // Spieler darf nicht ziehen, solange die KI "überlegt"
+        Timer timer = new Timer(500, new ActionListener() {
+            public void actionPerformed(ActionEvent evt) {
+                ((Timer)evt.getSource()).stop();
+                computerMove();
+                if (!gameOver) {
+                    playerCanMove = true; // Nach KI-Zug wieder erlauben
+                }
+            }
+        });
+        timer.setRepeats(false);
+        timer.start();
     }
 }
