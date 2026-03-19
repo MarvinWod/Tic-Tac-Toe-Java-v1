@@ -2,7 +2,8 @@
 
 A simple Tic Tac Toe game written in Java using a graphical user interface (GUI).
 
-It allows two players to take turns placing “X” and “O” and win by getting three symbols in a row (horizontally, vertically, or diagonally).  Or play against the unbeatable AI.
+It allows two players to take turns placing “X” and “O” and win by getting three symbols in a row (horizontally, vertically, or diagonally). <br>
+Or play against the unbeatable AI.
 
 ## 💻 Technologies
 
