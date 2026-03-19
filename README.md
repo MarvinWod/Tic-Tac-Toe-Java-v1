@@ -14,6 +14,8 @@ It allows two players to take turns placing “X” and “O” and win by getti
 
 •	Two-player mode
 
+• AI with difficulty mode
+
 •	Interactive game board
 
 •	Win detection
