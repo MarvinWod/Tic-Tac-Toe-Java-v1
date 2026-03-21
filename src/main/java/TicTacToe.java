@@ -42,6 +42,9 @@ public class TicTacToe {
 
     // Schwierigkeitsgrad: 0 = Leicht, 1 = Mittel, 2 = Schwer
     int aiDifficulty = 0;
+    
+    // Timer für KI-Züge (um ihn später zu stoppen)
+    Timer aiTimer = null;
 
     TicTacToe() {
         // Menüleiste mit Modus-Auswahl
@@ -169,7 +172,7 @@ public class TicTacToe {
         Object[] options = {"2 Spieler", "Gegen Computer"};
         int n = JOptionPane.showOptionDialog(
                 frame,
-                "Wähle den Spielmodus:",
+                "Wähle den Spielmodus",
                 "Spielmodus",
                 JOptionPane.YES_NO_OPTION,
                 JOptionPane.QUESTION_MESSAGE,
@@ -177,12 +180,21 @@ public class TicTacToe {
                 options,
                 options[0]
         );
+        
+        // Wenn Dialog geschlossen wurde, Anwendung beenden
+        if (n == JOptionPane.CLOSED_OPTION) {
+            if (aiTimer != null) {
+                aiTimer.stop();
+            }
+            System.exit(0);
+        }
+        
         vsComputer = (n == 1);
         if (vsComputer) {
             Object[] diffOptions = {"Leicht", "Mittel", "Schwer"};
             int diff = JOptionPane.showOptionDialog(
                     frame,
-                    "Wähle den Schwierigkeitsgrad:",
+                    "Wähle den Schwierigkeitsgrad",
                     "Schwierigkeitsgrad",
                     JOptionPane.DEFAULT_OPTION,
                     JOptionPane.QUESTION_MESSAGE,
@@ -190,6 +202,15 @@ public class TicTacToe {
                     diffOptions,
                     diffOptions[0]
             );
+            
+            // Wenn Dialog geschlossen wurde, Anwendung beenden
+            if (diff == JOptionPane.CLOSED_OPTION) {
+                if (aiTimer != null) {
+                    aiTimer.stop();
+                }
+                System.exit(0);
+            }
+            
             aiDifficulty = diff; // 0=Leicht, 1=Mittel, 2=Schwer
         }
     }
@@ -494,8 +515,13 @@ public class TicTacToe {
 
     // Führt den KI-Zug mit Verzögerung aus
     void computerMoveWithDelay() {
+        // Vorherigen Timer stoppen falls noch aktiv
+        if (aiTimer != null) {
+            aiTimer.stop();
+        }
+        
         playerCanMove = false; // Spieler darf nicht ziehen, solange die KI "überlegt"
-        Timer timer = new Timer(500, new ActionListener() {
+        aiTimer = new Timer(500, new ActionListener() {
             public void actionPerformed(ActionEvent evt) {
                 ((Timer)evt.getSource()).stop();
                 computerMove();
@@ -504,7 +530,7 @@ public class TicTacToe {
                 }
             }
         });
-        timer.setRepeats(false);
-        timer.start();
+        aiTimer.setRepeats(false);
+        aiTimer.start();
     }
 }
